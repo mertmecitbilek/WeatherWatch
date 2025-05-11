@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeatherWatch</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            transition: all 1s ease;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        body.clear {
+            background: linear-gradient(135deg, #43cea2, #185a9d);
+        }
+        body.clouds {
+            background: linear-gradient(135deg, #4b6cb7, #182848);
+        }
+        body.rain {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+        }
+        body.snow {
+            background: linear-gradient(135deg, #7f7fd5, #86a8e7);
+        }
+        body.thunderstorm {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+        }
+        body.mist {
+            background: linear-gradient(135deg, #606c88, #3f4c6b);
+        }
+
+        
+        .weather-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        
+        .rain-animation {
+            display: none;
+        }
+        .rain-animation.active {
+            display: block;
+        }
+        .rain-drop {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            animation: rain 1s linear infinite;
+        }
+
+        
+        .cloud-animation {
+            display: none;
+        }
+        .cloud-animation.active {
+            display: block;
+        }
+        .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: float 20s linear infinite;
+        }
+
+        
+        .snow-animation {
+            display: none;
+        }
+        .snow-animation.active {
+            display: block;
+        }
+        .snowflake {
+            position: absolute;
+            color: white;
+            font-size: 20px;
+            animation: snow 10s linear infinite;
+        }
+
+        @keyframes rain {
+            0% {
+                transform: translateY(-100vh);
+            }
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateX(-100vw);
+            }
+            100% {
+                transform: translateX(100vw);
+            }
+        }
+
+        @keyframes snow {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+            }
+        }
+
+        .weather-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border-radius: 25px;
+            padding: 1.5rem;
+            width: 80%;
+            max-width: 380px;
+            transition: all 0.3s ease;
+            z-index: 1;
+        }
+
+        .weather-container:hover {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+            transform: translate(-50%, -50%) scale(1.02);
+        }
+        .weather-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0.8rem auto;
+            transition: transform 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
+        }
+        .weather-icon:hover {
+            transform: scale(1.1) rotate(5deg);
+        }
+        .temperature {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin: 0.2rem 0;
+        }
+        .weather-info {
+            margin-top: 1.2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            backdrop-filter: blur(5px);
+        }
+        .search-box {
+            margin-bottom: 1.2rem;
+        }
+        .search-box input {
+            border-radius: 10px 0 0 10px;
+            border: 2px solid #e0e0e0;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #0083b0;
+            box-shadow: 0 0 0 3px rgba(0,131,176,0.1);
+        }
+        .search-box button {
+            border-radius: 0 10px 10px 0;
+            padding: 10px 20px;
+            font-size: 0.95rem;
+            background: #0083b0;
+            border: none;
+            transition: all 0.3s ease;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .search-box button:hover {
+            background: #006688;
+            transform: translateX(2px);
+        }
+        .error-message {
+            color: #dc3545;
+            margin-top: 1rem;
+            display: none;
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(220, 53, 69, 0.1);
+            font-weight: 500;
+        }
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .detail-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .detail-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+        }
+        .detail-item p {
+            margin: 0;
+            color: #666;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .detail-item h4 {
+            margin: 8px 0 0;
+            color: #2c3e50;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0083b0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .title-container {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .title-container h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin: 0;
+            padding: 0.5rem 0;
+        }
+        .title-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #00b4db, #0083b0);
+            border-radius: 3px;
+        }
+        #cityName {
+            color: #34495e;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 0.6rem 0;
+        }
+
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Karanlık tema stilleri */
+        body.dark-theme {
+            background: #1a1a1a !important;
+        }
+
+        body.dark-theme .weather-container {
+            background: rgba(30, 30, 30, 0.95);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body.dark-theme .temperature,
+        body.dark-theme h1,
+        body.dark-theme #cityName {
+            color: #ffffff;
+        }
+
+        body.dark-theme .weather-info {
+            background: rgba(40, 40, 40, 0.8);
+        }
+
+        body.dark-theme .detail-item {
+            background: rgba(50, 50, 50, 0.9);
+        }
+
+        body.dark-theme .detail-item p {
+            color: #b0b0b0;
+        }
+
+        body.dark-theme .detail-item h4 {
+            color: #ffffff;
+        }
+
+        body.dark-theme .search-box input {
+            background: rgba(40, 40, 40, 0.9);
+            border-color: #404040;
+            color: #ffffff;
+        }
+
+        body.dark-theme .search-box input::placeholder {
+            color: #808080;
+        }
+
+        body.dark-theme .search-box input:focus {
+            border-color: #0083b0;
+            box-shadow: 0 0 0 3px rgba(0,131,176,0.2);
+        }
+
+        body.dark-theme .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        body.clear, body.clouds, body.rain, body.snow, body.thunderstorm, body.mist {
+            background-size: 200% 200%;
+            animation: gradientShift 15s ease infinite;
+        }
+    </style>
+</head>
+<body class="clear">
+    
+    <button class="theme-toggle" id="themeToggle" title="Tema Değiştir">🌙</button>
+
+  
+    <div class="weather-animation">
+        <div class="rain-animation" id="rainAnimation"></div>
+        <div class="cloud-animation" id="cloudAnimation"></div>
+        <div class="snow-animation" id="snowAnimation"></div>
+    </div>
+
+    <div class="weather-container">
+        <div class="title-container">
+            <h1>WeatherWatch</h1>
+        </div>
+        
+        <div class="search-box">
+            <div class="input-group">
+                <input type="text" id="cityInput" class="form-control" placeholder="Şehir adı giriniz...">
+                <button class="btn btn-primary" onclick="getWeather()">Ara</button>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <img id="weatherIcon" class="weather-icon" src="https://cdn-icons-png.flaticon.com/512/3222/3222800.png" alt="Hava Durumu İkonu">
+            <div class="temperature" id="temperature">--°C</div>
+            <h2 id="cityName" class="mb-3">Şehir Seçiniz</h2>
+        </div>
+
+        <div class="weather-info">
+            <div class="weather-details">
+                <div class="detail-item">
+                    <p>Nem</p>
+                    <h4 id="humidity">--%</h4>
+                </div>
+                <div class="detail-item">
+                    <p>Rüzgar</p>
+                    <h4 id="wind">-- km/s</h4>
+                </div>
+                <div class="detail-item">
+                    <p>Hissedilen</p>
+                    <h4 id="feelsLike">--°C</h4>
+                </div>
+                <div class="detail-item">
+                    <p>UV İndeksi</p>
+                    <h4 id="uvIndex">--</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            Şehir bulunamadı. Lütfen geçerli bir şehir adı giriniz.
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        
+        
+        function toggleTheme() {
+            const body = document.body;
+            const themeToggle = document.getElementById('themeToggle');
+            
+            if (body.classList.contains('dark-theme')) {
+                body.classList.remove('dark-theme');
+                themeToggle.textContent = '🌙';
+                themeToggle.title = 'Karanlık Temaya Geç';
+            } else {
+                body.classList.add('dark-theme');
+                themeToggle.textContent = '☀️';
+                themeToggle.title = 'Aydınlık Temaya Geç';
+            }
+        }
+
+       
+        document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+        async function getWeather() {
+            const cityInput = document.getElementById('cityInput');
+            const city = cityInput.value;
+            const loading = document.getElementById('loading');
+
+            if (!city) {
+                showError('Lütfen bir şehir adı giriniz.');
+                return;
+            }
+
+            try {
+                loading.style.display = 'block';
+                hideError();
+                
+                const response = await fetch(`https://api.weatherapi.com/v1/current.json?key=${config.API_KEY}&q=${city}&lang=tr`);
+                const data = await response.json();
+
+                if (data.error) {
+                    if (data.error.code === 1006) {
+                        showError('Şehir bulunamadı. Lütfen geçerli bir şehir adı giriniz.');
+                    } else if (data.error.code === 2006) {
+                        showError('API anahtarı geçersiz. Lütfen geçerli bir API anahtarı ekleyin.');
+                    } else if (data.error.code === 2008) {
+                        showError('API kullanım limiti aşıldı. Lütfen daha sonra tekrar deneyin.');
+                    } else {
+                        showError('Bir hata oluştu: ' + data.error.message);
+                    }
+                    return;
+                }
+
+                updateWeatherUI(data);
+            } catch (error) {
+                console.error('Hata detayı:', error);
+                showError('Bir hata oluştu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function updateWeatherUI(data) {
+            document.getElementById('cityName').textContent = data.location.name;
+            document.getElementById('temperature').textContent = `${Math.round(data.current.temp_c)}°C`;
+            document.getElementById('humidity').textContent = `${data.current.humidity}%`;
+            document.getElementById('wind').textContent = `${Math.round(data.current.wind_kph)} km/s`;
+            document.getElementById('feelsLike').textContent = `${Math.round(data.current.feelslike_c)}°C`;
+            document.getElementById('uvIndex').textContent = data.current.uv;
+            document.getElementById('weatherIcon').src = `https:${data.current.condition.icon}`;
+            
+            
+            createWeatherAnimation(data.current.condition.text);
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        
+        document.getElementById('cityInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                getWeather();
+            }
+        });
+
+        
+        function createWeatherAnimation(type) {
+            const container = document.querySelector('.weather-animation');
+            container.innerHTML = '';
+
+            
+            const weatherType = type.toLowerCase().replace(/\s+/g, '');
+            
+            
+            const isDarkTheme = document.body.classList.contains('dark-theme');
+
+            document.body.classList.remove('clear', 'clouds', 'rain', 'snow', 'thunderstorm', 'mist');
+            
+            
+            if (weatherType.includes('rain') || weatherType.includes('drizzle')) {
+                const rainContainer = document.getElementById('rainAnimation');
+                rainContainer.innerHTML = '';
+                for (let i = 0; i < 50; i++) {
+                    const drop = document.createElement('div');
+                    drop.className = 'rain-drop';
+                    drop.style.left = `${Math.random() * 100}%`;
+                    drop.style.animationDelay = `${Math.random() * 2}s`;
+                    rainContainer.appendChild(drop);
+                }
+                rainContainer.classList.add('active');
+                document.body.classList.add('rain');
+            } else if (weatherType.includes('cloud')) {
+                const cloudContainer = document.getElementById('cloudAnimation');
+                cloudContainer.innerHTML = '';
+                for (let i = 0; i < 5; i++) {
+                    const cloud = document.createElement('div');
+                    cloud.className = 'cloud';
+                    cloud.style.width = `${Math.random() * 100 + 50}px`;
+                    cloud.style.height = `${Math.random() * 50 + 30}px`;
+                    cloud.style.top = `${Math.random() * 50}%`;
+                    cloud.style.animationDelay = `${Math.random() * 10}s`;
+                    cloudContainer.appendChild(cloud);
+                }
+                cloudContainer.classList.add('active');
+                document.body.classList.add('clouds');
+            } else if (weatherType.includes('snow')) {
+                const snowContainer = document.getElementById('snowAnimation');
+                snowContainer.innerHTML = '';
+                for (let i = 0; i < 30; i++) {
+                    const snowflake = document.createElement('div');
+                    snowflake.className = 'snowflake';
+                    snowflake.innerHTML = '❄';
+                    snowflake.style.left = `${Math.random() * 100}%`;
+                    snowflake.style.animationDelay = `${Math.random() * 5}s`;
+                    snowContainer.appendChild(snowflake);
+                }
+                snowContainer.classList.add('active');
+                document.body.classList.add('snow');
+            } else if (weatherType.includes('thunder') || weatherType.includes('storm')) {
+                document.body.classList.add('thunderstorm');
+            } else if (weatherType.includes('mist') || weatherType.includes('fog')) {
+                document.body.classList.add('mist');
+            } else {
+                document.body.classList.add('clear');
+            }
+
+            
+            if (isDarkTheme) {
+                document.body.classList.add('dark-theme');
+            }
+        }
+    </script>
+</body>
+</html> 
